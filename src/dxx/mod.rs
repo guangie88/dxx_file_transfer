@@ -11,8 +11,38 @@ use self::hyper::client::response::Response;
 use self::url::Url;
 
 #[derive(Debug)]
+pub enum FmtError {
+    BadSyntax(Vec<(String, Option<String>)>),
+    BadIndex(usize),
+    BadName(String),
+    NoSuchFormat(String),
+    UnsatisfiedFormat {
+        idx: usize,
+        must_implement: &'static str,
+    },
+    BadCount(usize),
+    Io(::std::io::Error),
+    Fmt(::std::fmt::Error),
+}
+
+impl<'a> From<runtime_fmt::Error<'a>> for FmtError {
+    fn from(e: runtime_fmt::Error<'a>) -> FmtError {
+        match e {
+            runtime_fmt::Error::BadSyntax(e) => FmtError::BadSyntax(e),
+            runtime_fmt::Error::BadIndex(e) => FmtError::BadIndex(e),
+            runtime_fmt::Error::BadName(e) => FmtError::BadName(e.to_owned()),
+            runtime_fmt::Error::NoSuchFormat(e) => FmtError::NoSuchFormat(e.to_owned()),
+            runtime_fmt::Error::UnsatisfiedFormat { idx, must_implement } => FmtError::UnsatisfiedFormat { idx: idx, must_implement: must_implement },
+            runtime_fmt::Error::BadCount(e) => FmtError::BadCount(e),
+            runtime_fmt::Error::Io(e) => FmtError::Io(e),
+            runtime_fmt::Error::Fmt(e) => FmtError::Fmt(e),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum Error {
-    Fmt,
+    Fmt(FmtError),
     Hyper(hyper::error::Error),
     Url(url::ParseError),
 }
@@ -21,7 +51,7 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 
 impl<'a> From<runtime_fmt::Error<'a>> for Error {
     fn from(e: runtime_fmt::Error<'a>) -> Error {
-        Error::Fmt
+        Error::Fmt(e.into())
     }
 }
 
