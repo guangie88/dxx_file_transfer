@@ -3,11 +3,21 @@
   <head>
     <title>DXX File Transfer Gateway</title>
 
+    <link type="text/css" rel="stylesheet" href="app.css"/>
+
     <!-- Vue.js -->
     <script src="https://unpkg.com/vue"></script>
     <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-default/index.css">
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
-    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/vue-smart-table/2.5.0/vue-smart-table.js"></script>-->
+
+    <!-- vue-cookie -->
+    <script src="vue-cookies.js"></script>
+
+    <!-- bootstrap-vue -->
+    <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap@next/dist/css/bootstrap.min.css"/>
+    <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.css"/>
+    <script src="//unpkg.com/tether@latest/dist/js/tether.min.js"></script>
+    <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js"></script>
 
     <!-- Bootstrap 4 -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
@@ -20,31 +30,46 @@
       <h1>DXX File Transfer Gateway</h1>
 
       <div class="input-group">
-        <span class="input-group-addon" id="username-addon">Username</span>
+        <span class="input-group-addon" id="username-addon">@</span>
         <input type="text" class="form-control" placeholder="Enter your username" aria-describedby="username-addon">
       </div>
 
-      <div class="input-group">
-        <span class="input-group-addon" id="date-addon">D</span>
-        <input type="text" class="form-control" placeholder="Enter the date" aria-describedby="date-addon">
-      </div>
-
-      <div class="input-group">
-        <span class="input-group-addon" id="time-addon">T</span>
-        <input type="text" class="form-control" placeholder="Enter the time (seconds optional)" aria-describedby="time-addon">
-      </div>
-
-      <div id="app">
+      <div id="dt">
         <template>
-          <el-table :data="tableData" style="width: 100%">
-            <el-table-column prop="date" label="Date" width="180">
-            </el-table-column>
-            <el-table-column prop="name" label="Name" width="180">
-            </el-table-column>
-            <el-table-column prop="address" label="Address">
-            </el-table-column>
-          </el-table>
+          <div class="block">
+            <span class="demonstration">Download date time: </span>
+            <el-date-picker v-model="dtValue" type="datetime" format="yyyy-MM-dd HH:mm" placeholder="Select date and time" :picker-options="pickerOptions1"></el-date-picker>
+          </div>
         </template>
+      </div>
+
+      <div id="status">
+        <div class="justify-content-centermy-1 row">
+          <b-form-fieldset horizontal label="Rows per page" class="col-6" :label-size="6">
+            <b-form-select :options="[{text:5,value:5},{text:10,value:10},{text:15,value:15}]" v-model="perPage">
+            </b-form-select>
+          </b-form-fieldset>
+
+          <b-form-fieldset horizontal label="Filter" class="col-6" :label-size="2">
+            <b-form-input v-model="filter" placeholder="Type to Search"></b-form-input>
+          </b-form-fieldset>
+        </div>
+
+        <b-table striped hover :items="items" :fields="fields" :current-page="currentPage" :per-page="perPage" :filter="filter">
+          <template slot="name" scope="item">
+            {{item.value.first}} {{item.value.last}}
+          </template>
+          <template slot="isActive" scope="item">
+            {{item.value?'Yes :)':'No :('}}
+          </template>
+          <template slot="actions" scope="item">
+            <b-btn size="sm" @click="details(item.item)">Details</b-btn>
+          </template>
+        </b-table>
+
+        <div class="justify-content-center row my-1">
+          <b-pagination size="md" :total-rows="this.items.length" :per-page="perPage" v-model="currentPage" />
+        </div>
       </div>
     </div>
 
