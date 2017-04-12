@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>DXX File Transfer Gateway</title>
+
+    <!-- Vue.js -->
+    <script src="https://unpkg.com/vue"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-default/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/vue-smart-table/2.5.0/vue-smart-table.js"></script>-->
+
+    <!-- Bootstrap 4 -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <div class="container-fluid">
+      <h1>DXX File Transfer Gateway</h1>
+
+      <div class="input-group">
+        <span class="input-group-addon" id="username-addon">Username</span>
+        <input type="text" class="form-control" placeholder="Enter your username" aria-describedby="username-addon">
+      </div>
+
+      <div class="input-group">
+        <span class="input-group-addon" id="date-addon">D</span>
+        <input type="text" class="form-control" placeholder="Enter the date" aria-describedby="date-addon">
+      </div>
+
+      <div class="input-group">
+        <span class="input-group-addon" id="time-addon">T</span>
+        <input type="text" class="form-control" placeholder="Enter the time (seconds optional)" aria-describedby="time-addon">
+      </div>
+
+      <div id="app">
+        <template>
+          <el-table :data="tableData" style="width: 100%">
+            <el-table-column prop="date" label="Date" width="180">
+            </el-table-column>
+            <el-table-column prop="name" label="Name" width="180">
+            </el-table-column>
+            <el-table-column prop="address" label="Address">
+            </el-table-column>
+          </el-table>
+        </template>
+      </div>
+    </div>
+
+    <!-- must be placed after all the templates -->
+    <script src="app.js"></script>
+  </body>
+</html>
