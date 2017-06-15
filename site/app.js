@@ -1,6 +1,6 @@
 // table
-new Vue({
-  el: '#status',
+var entries = new Vue({
+  el: '#entries',
   created: function() {
     this.$cookies.set('one', 1);
     console.log(this.$cookies.get('one'));
@@ -121,7 +121,7 @@ new Vue({
 })
 
 // datetimepicker
-new Vue({
+var dt = new Vue({
   el: '#dt',
   data: {
     pickerOptions1: {

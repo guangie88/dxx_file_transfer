@@ -5,12 +5,14 @@ authors = ["Chen Weiguang <chen.weiguang@gmail.com>"]
 
 [dependencies]
 chrono = { version = "=0.3.1", features = ["serde"] }
+djangohashers = "=0.2.9"
 error-chain = "=0.10.0"
 futures = "=0.1.14"
 futures-cpupool = "=0.1.5"
 hyper = { version = "=0.10.12", default-features = false }
 log = "=0.3.8"
 log4rs = "=0.7.0"
+redis = "=0.8.0"
 regex = "=0.2.2"
 rocket = { git = "https://github.com/SergioBenitez/Rocket.git", branch = "master" }
 rocket_codegen = { git = "https://github.com/SergioBenitez/Rocket.git", branch = "master" }
@@ -20,6 +22,7 @@ rusqlite = "=0.12.0"
 serde = "=1.0.8"
 serde_derive = "=1.0.8"
 serde_json = "=1.0.2"
+simple_logger = "=0.4.0"
 structopt = "=0.0.3"
 structopt-derive = "=0.0.3"
 toml = "=0.4.1"

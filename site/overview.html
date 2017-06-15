@@ -2,10 +2,9 @@
 <html>
   <head>
     <title>DXX File Transfer Gateway</title>
-    
+
     <!-- custom style -->
     <link type="text/css" rel="stylesheet" href="app.css"/>
-    <link rel="icon" href="favicon.ico" />
 
     <!-- Vue.js -->
     <script src="https://unpkg.com/vue"></script>
@@ -31,22 +30,49 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
   </head>
   <body>
-    <div id="start" class="container-fluid">
-      <h1>DXX File Transfer Login</h1>
+    <div class="container-fluid">
+      <h1>DXX File Transfer Overview</h1>
 
-      <form action="/login" method="post">
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input name="username" type="text" class="form-control" placeholder="Enter your username">
+      <div id="dt">
+        <template>
+          <div class="block">
+            <span class="demonstration">Download date time: </span>
+            <el-date-picker v-model="dtValue" type="datetime" format="yyyy-MM-dd HH:mm" placeholder="Select date and time" :picker-options="pickerOptions1"></el-date-picker>
+          </div>
+        </template>
+      </div>
+
+      <div id="entries">
+        <div class="justify-content-centermy-1 row">
+          <b-form-fieldset horizontal label="Rows per page" class="col-6" :label-size="6">
+            <b-form-select :options="[{text:5,value:5},{text:10,value:10},{text:15,value:15}]" v-model="perPage">
+            </b-form-select>
+          </b-form-fieldset>
+
+          <b-form-fieldset horizontal label="Filter" class="col-6" :label-size="2">
+            <b-form-input v-model="filter" placeholder="Type to Search"></b-form-input>
+          </b-form-fieldset>
         </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input name="password" type="password" class="form-control" placeholder="Enter your password">
+
+        <b-table striped hover :items="items" :fields="fields" :current-page="currentPage" :per-page="perPage" :filter="filter">
+          <template slot="name" scope="item">
+            {{item.value.first}} {{item.value.last}}
+          </template>
+          <template slot="isActive" scope="item">
+            {{item.value?'Yes :)':'No :('}}
+          </template>
+          <template slot="actions" scope="item">
+            <b-btn size="sm" @click="details(item.item)">Details</b-btn>
+          </template>
+        </b-table>
+
+        <div class="justify-content-center row my-1">
+          <b-pagination size="md" :total-rows="this.items.length" :per-page="perPage" v-model="currentPage" />
         </div>
-        <input type="submit" class="btn btn-primary" value="Login">
-      </form>
+      </div>
     </div>
 
-    <script src="index.js"></script>
+    <!-- must be placed after all the templates -->
+    <script src="app.js"></script>
   </body>
 </html>

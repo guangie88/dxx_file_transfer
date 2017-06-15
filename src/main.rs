@@ -1,7 +1,8 @@
-#![feature(plugin)]
+#![feature(custom_derive, plugin)]
 #![plugin(rocket_codegen)]
 
 extern crate chrono;
+extern crate djangohashers;
 
 #[macro_use]
 extern crate error_chain;
@@ -12,15 +13,15 @@ extern crate error_chain;
 #[macro_use]
 extern crate log;
 extern crate log4rs;
+extern crate redis;
 extern crate rocket;
 extern crate rocket_contrib;
-extern crate rusqlite;
 extern crate serde;
 
 #[macro_use]
 extern crate serde_derive;
-
 extern crate serde_json;
+extern crate simple_logger;
 extern crate structopt;
 
 #[macro_use]
@@ -32,17 +33,28 @@ mod dxx;
 use chrono::{DateTime, Local};
 // use futures::Future;
 // use futures_cpupool::CpuPool;
+use redis::{Client, Commands, Connection, RedisResult};
 use rocket::config::{Config, Environment};
 use rocket::http::Cookies;
-use rocket::response::NamedFile;
+use rocket::request::Form;
+use rocket::response::{NamedFile, Redirect};
 use rocket::State;
 use rocket_contrib::JSON;
-use rusqlite::Connection;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process;
+use std::sync::Mutex;
 use structopt::StructOpt;
 use url::Url;
+
+// redis keys
+const RDS_USERS: &str = "DXX_USERS";
+
+#[derive(FromForm, Debug)]
+struct Creds {
+    username: String,
+    password: String,
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct TimingInput {
@@ -62,15 +74,12 @@ struct StatusElem {
     stage: Stage,
 }
 
+type HashedPassword = String;
 type Status = Vec<StatusElem>;
 
 mod errors {
     error_chain! {
         errors {
-//             ClientMapRead {
-//                 description("error in reading client map")
-//                 display("error in reading client map")
-//             }
         }
     }
 }
@@ -93,7 +102,13 @@ struct MainConfig {
     db_path: String,
 
     #[structopt(short = "l", long = "log-config-path", help = "Log config file path")]
-    log_config_path: String,
+    log_config_path: Option<String>,
+}
+
+macro_rules! handle_mut {
+    ($mtx:expr) => {{
+        $mtx.lock().unwrap()
+    }};
 }
 
 // static files section
@@ -116,6 +131,39 @@ fn files(config: State<MainConfig>, file: PathBuf) -> Result<NamedFile> {
 
 // API section
 
+#[post("/newuser", data = "<creds>")]
+fn create_new_user(conn: State<Mutex<Connection>>, creds: Form<Creds>) -> Result<()> {
+    let conn = handle_mut!(conn);
+    let username: &str = creds.get().username.as_ref();
+
+    // check for existence first before attempting to hash the password
+    conn.hexists(RDS_USERS, username)
+        .chain_err(|| format!("Cannot create new user with username '{}' since it already exists in the database", username))?;
+
+    let password = creds.get().password.as_ref();
+    let hashed_password = djangohashers::make_password(password);
+
+    conn.hset_nx(RDS_USERS, username, hashed_password)
+        .chain_err(|| format!("Unexpected error of being unable to add new user with username '{}'", username))
+}
+
+#[post("/login", data = "<creds>")]
+fn login(mut cookies: Cookies, conn: State<Mutex<Connection>>, creds: Form<Creds>) -> Result<Redirect> {
+    info!("{:?}", creds.get());
+
+    let conn = handle_mut!(conn);
+    let username: &str = creds.get().username.as_ref();
+    let password = creds.get().password.as_ref();
+
+    let db_hashed_password: HashedPassword = conn.hget(RDS_USERS, username)
+        .chain_err(|| format!("No such username '{}' found in the database", username))?;
+
+    match djangohashers::check_password(password, db_hashed_password.as_ref()) {
+        Ok(_) => Ok(Redirect::to("/overview.html")),
+        Err(_) => bail!(format!("Given invalid password for the username '{}'", username)),
+    }
+}
+
 #[post("/check", data = "<timing_input>")]
 fn check_timing(config: State<MainConfig>, timing_input: JSON<TimingInput>) -> Result<()> {
     bail!("check_timing not implemented")
@@ -126,45 +174,25 @@ fn get_all_status(cookies: Cookies, config: State<MainConfig>) -> Result<JSON<St
     bail!("get_all_status not implemented")
 }
 
-fn set_up_tables(conn: &Connection) -> Result<()> {
-    conn.execute("CREATE TABLE IF NOT EXISTS reg ( \
-        id INTEGER PRIMARY KEY AUTOINCREMENT, \
-        session TEXT NOT NULL \
-        );", &[])
-        .chain_err(|| "Unable to create table reg")?;
-
-    conn.execute("CREATE TABLE IF NOT EXISTS status ( \
-        id INTEGER, \
-        username TEXT NOT NULL, \
-        datetime TEXT NOT NULL, \
-        stage INTEGER NOT NULL, \
-        downloaded INTEGER
-        );", &[])
-        .chain_err(|| "Unable to create table status")?;
-
-    conn.execute("CREATE TEMPORARY VIEW IF NOT EXISTS reg_status AS \
-        SELECT reg.id, reg.session, \
-        status.username, status.datetime, status.stage, status.downloaded \
-        FROM reg \
-        INNER JOIN reg.id ON status.id;", &[])
-        .chain_err(|| "Unable to create view reg_status")?;
-
-    Ok(())
-}
-
 fn run() -> Result<()> {
     let config = MainConfig::from_args();
 
-    let _ = log4rs::init_file(&config.log_config_path, Default::default())
-       .chain_err(|| format!("Unable to initialize log4rs logger with the given config file at '{}'", config.log_config_path))?;
+    if let &Some(ref log_config_path) = &config.log_config_path {
+        log4rs::init_file(log_config_path, Default::default())
+            .chain_err(|| format!("Unable to initialize log4rs logger with the given config file at '{}'", log_config_path))?;
+    } else {
+        simple_logger::init()
+            .chain_err(|| "Unable to initialize default logger")?;
+    }
 
     info!("Config: {:?}", config);
 
     // set up the database
-    let conn = Connection::open(&config.db_path)
-        .chain_err(|| format!("Unable to open SQLite connection to {:?}", config.db_path))?;
+    let client = Client::open(config.db_path.as_ref())
+        .chain_err(|| format!("Unable to open redis connection to {:?}", config.db_path))?;
 
-    set_up_tables(&conn)?;
+    let conn = client.get_connection()
+        .chain_err(|| "Unable to get connection from redis client")?;
 
     // set up the server
     let rocket_config = Config::build(Environment::Production)
@@ -173,9 +201,10 @@ fn run() -> Result<()> {
         .finalize()
         .chain_err(|| format!("Unable to create the custom rocket configuration!"))?;
 
-    rocket::custom(rocket_config, true)
+    rocket::custom(rocket_config, false)
         .manage(config)
-        .mount("/", routes![index, files, check_timing, get_all_status]).launch();
+        .manage(Mutex::new(conn))
+        .mount("/", routes![index, create_new_user, login, check_timing, get_all_status, files]).launch();
 
     Ok(())
 }
@@ -183,19 +212,15 @@ fn run() -> Result<()> {
 fn main() {
     match run() {
         Ok(_) => {
-            println!("Program completed!");
+            info!("Program completed!");
             process::exit(0)
         },
 
         Err(ref e) => {
-            let stderr = &mut io::stderr();
-
-            writeln!(stderr, "Error: {}", e)
-                .expect("Unable to write error into stderr!");
+            error!("Error: {}", e);
 
             for e in e.iter().skip(1) {
-                writeln!(stderr, "- Caused by: {}", e)
-                    .expect("Unable to write error causes into stderr!");
+                error!("> Caused by: {}", e);
             }
 
             process::exit(1);
