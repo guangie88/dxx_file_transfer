@@ -1,7 +1,7 @@
 extern crate chrono;
 extern crate hyper;
 extern crate regex;
-extern crate runtime_fmt;
+// extern crate runtime_fmt;
 extern crate url;
 
 use self::chrono::{Datelike, DateTime, Timelike, Local};
@@ -25,20 +25,20 @@ pub enum FmtError {
     Fmt(::std::fmt::Error),
 }
 
-impl<'a> From<runtime_fmt::Error<'a>> for FmtError {
-    fn from(e: runtime_fmt::Error<'a>) -> FmtError {
-        match e {
-            runtime_fmt::Error::BadSyntax(e) => FmtError::BadSyntax(e),
-            runtime_fmt::Error::BadIndex(e) => FmtError::BadIndex(e),
-            runtime_fmt::Error::BadName(e) => FmtError::BadName(e.to_owned()),
-            runtime_fmt::Error::NoSuchFormat(e) => FmtError::NoSuchFormat(e.to_owned()),
-            runtime_fmt::Error::UnsatisfiedFormat { idx, must_implement } => FmtError::UnsatisfiedFormat { idx: idx, must_implement: must_implement },
-            runtime_fmt::Error::BadCount(e) => FmtError::BadCount(e),
-            runtime_fmt::Error::Io(e) => FmtError::Io(e),
-            runtime_fmt::Error::Fmt(e) => FmtError::Fmt(e),
-        }
-    }
-}
+// impl<'a> From<runtime_fmt::Error<'a>> for FmtError {
+//     fn from(e: runtime_fmt::Error<'a>) -> FmtError {
+//         match e {
+//             runtime_fmt::Error::BadSyntax(e) => FmtError::BadSyntax(e),
+//             runtime_fmt::Error::BadIndex(e) => FmtError::BadIndex(e),
+//             runtime_fmt::Error::BadName(e) => FmtError::BadName(e.to_owned()),
+//             runtime_fmt::Error::NoSuchFormat(e) => FmtError::NoSuchFormat(e.to_owned()),
+//             runtime_fmt::Error::UnsatisfiedFormat { idx, must_implement } => FmtError::UnsatisfiedFormat { idx: idx, must_implement: must_implement },
+//             runtime_fmt::Error::BadCount(e) => FmtError::BadCount(e),
+//             runtime_fmt::Error::Io(e) => FmtError::Io(e),
+//             runtime_fmt::Error::Fmt(e) => FmtError::Fmt(e),
+//         }
+//     }
+// }
 
 #[derive(Debug)]
 pub enum Error {
@@ -49,11 +49,11 @@ pub enum Error {
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
-impl<'a> From<runtime_fmt::Error<'a>> for Error {
-    fn from(e: runtime_fmt::Error<'a>) -> Error {
-        Error::Fmt(e.into())
-    }
-}
+// impl<'a> From<runtime_fmt::Error<'a>> for Error {
+//     fn from(e: runtime_fmt::Error<'a>) -> Error {
+//         Error::Fmt(e.into())
+//     }
+// }
 
 impl From<hyper::error::Error> for Error {
     fn from(e: hyper::error::Error) -> Error {
@@ -68,12 +68,13 @@ impl<'a> From<url::ParseError> for Error {
 }
 
 pub fn fmt_url(url_fmt: &str, dt: &DateTime<Local>, username: &str) -> Result<Url> {
-    rt_format!(url_fmt,
+//     rt_format!(url_fmt,
+    Ok(format!(
+        "http://downloader.dso/download/{:04}-{:02}-{:02}_{:02}-{:02}-{:02}.{}.html",
         year = dt.year(), month = dt.month(), day = dt.day(),
         hour = dt.hour(), minute = dt.minute(), second = dt.second(),
-        username = username)
+        username = username))
 
-        .map_err(|e| e.into())
         .and_then(|s| Url::parse(&s).map_err(|e| e.into()))
 }
 

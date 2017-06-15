@@ -14,9 +14,6 @@ extern crate log;
 extern crate log4rs;
 extern crate rocket;
 extern crate rocket_contrib;
-
-#[macro_use]
-extern crate runtime_fmt;
 extern crate rusqlite;
 extern crate serde;
 
@@ -125,7 +122,7 @@ fn check_timing(config: State<MainConfig>, timing_input: JSON<TimingInput>) -> R
 }
 
 #[get("/status")]
-fn get_all_status(cookies: &Cookies, config: State<MainConfig>) -> Result<JSON<Status>> {
+fn get_all_status(cookies: Cookies, config: State<MainConfig>) -> Result<JSON<Status>> {
     bail!("get_all_status not implemented")
 }
 
